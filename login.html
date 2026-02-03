@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - ระบบจำลองการสอบ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #002244;
+            --secondary: #ffcc00;
+            --bg: #f0f2f5;
+        }
+        body { margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; background-color: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        .login-container { width: 100%; max-width: 420px; padding: 20px; }
+        .login-card { 
+            background: #ffffff; 
+            border-top: 6px solid var(--primary); 
+            border-radius: 15px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); 
+            padding: 45px 40px; 
+            text-align: center; 
+        }
+
+        .logo-area h2 { color: var(--primary); font-size: 24px; margin-bottom: 5px; font-weight: 600; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 35px; }
+
+        .form-group { text-align: left; margin-bottom: 22px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--primary); font-weight: 600; font-size: 14px; }
+        .form-group input { 
+            width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 8px; 
+            font-size: 16px; box-sizing: border-box; transition: 0.3s;
+            outline: none;
+        }
+        .form-group input:focus { border-color: var(--secondary); box-shadow: 0 0 8px rgba(255, 204, 0, 0.2); }
+
+        .btn-login { 
+            width: 100%; padding: 15px; background: var(--primary); color: white; 
+            border: none; border-radius: 8px; font-size: 18px; font-weight: 600; 
+            cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        .btn-login:hover { background-color: #003366; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .btn-login:disabled { background: #ccc; cursor: not-allowed; }
+
+        .footer-links { margin-top: 30px; font-size: 14px; color: #888; border-top: 1px solid #eee; padding-top: 20px; }
+        .footer-links a { color: var(--primary); text-decoration: none; font-weight: 600; transition: 0.3s; }
+        .footer-links a:hover { color: var(--secondary); }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="logo-area">
+            <h2>🚨 POLICE EXAM</h2>
+            <p class="subtitle">ระบบจำลองการสอบออนไลน์ (นายร้อยตำรวจ)</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label>ชื่อผู้ใช้งาน (Username)</label>
+                <input type="text" name="username" placeholder="กรอกชื่อผู้ใช้งาน" required>
+            </div>
+
+            <div class="form-group">
+                <label>รหัสผ่าน (Password)</label>
+                <input type="password" name="password" placeholder="กรอกรหัสผ่าน" required>
+            </div>
+
+            <button type="submit" class="btn-login" id="submitBtn">เข้าสู่ระบบ</button>
+        </form>
+
+        <div class="footer-links">
+            <p>ยังไม่มีบัญชี? <a href="register.html">ลงทะเบียนที่นี่</a></p>
+            <p>
+                <a href="forgot_password.html">ลืมรหัสผ่าน?</a> 
+                | 
+                <a href="guide.html">คู่มือการใช้งาน</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "กำลังตรวจสอบ...";
+
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('api/auth.php', {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) {
+                throw new Error(`Server Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                const userData = {
+                    id: data.user.id,
+                    name: data.user.username,
+                    role: data.user.role 
+                };
+                
+                localStorage.setItem('user', JSON.stringify(userData));
+                window.location.href = 'index.html';
+            } else {
+                alert(data.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+                btn.disabled = false;
+                btn.innerText = "เข้าสู่ระบบ";
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("เกิดข้อผิดพลาด: " + error.message);
+            btn.disabled = false;
+            btn.innerText = "เข้าสู่ระบบ";
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POLICE EXAM - ระบบจำลองสอบตำรวจ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #002244;
+            --secondary-gold: #ffcc00;
+            --gold-gradient: linear-gradient(45deg, #ffcc00, #ffeb3b);
+            --bg-light: #f4f7f9;
+            --text-dark: #333;
+            --white: #ffffff;
+        }
+
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            margin: 0; padding: 0; 
+            background-color: var(--bg-light); 
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 5%; background: var(--primary-blue); color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 100;
+        }
+        
+        .brand { 
+            font-weight: 600; font-size: 1.4rem; display: flex; align-items: center; gap: 12px; letter-spacing: 1px; 
+            cursor: pointer;
+            user-select: none; 
+            transition: 0.3s;
+        }
+        .brand:hover { text-shadow: 0 0 10px rgba(255, 204, 0, 0.5); }
+
+        .nav-right { display: flex; align-items: center; gap: 15px; }
+        
+        .site-tag {
+            background: rgba(255, 255, 255, 0.05); padding: 6px 15px; border-radius: 30px;
+            font-size: 0.85rem; border: 1px solid var(--secondary-gold); color: var(--secondary-gold);
+            display: flex; align-items: center; gap: 8px; font-weight: 400;
+        }
+
+        .btn-login-nav {
+            background: var(--gold-gradient); color: var(--primary-blue);
+            padding: 10px 22px; border-radius: 8px; text-decoration: none;
+            font-weight: bold; font-size: 0.95rem; transition: 0.3s;
+        }
+
+        .user-badge {
+            background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 10px;
+            font-size: 0.9rem; display: flex; align-items: center; gap: 15px;
+        }
+
+        .btn-history {
+            background: var(--secondary-gold); color: var(--primary-blue);
+            padding: 5px 12px; border-radius: 5px; text-decoration: none;
+            font-weight: 600; font-size: 0.8rem; transition: 0.3s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .btn-history:hover { background: white; transform: scale(1.05); }
+
+        .btn-logout {
+            background: rgba(255,70,70,0.2); color: #ff6b6b; border: 1px solid #ff6b6b; 
+            padding: 6px 12px; cursor: pointer; border-radius: 8px; font-weight: bold;
+            font-family: 'Sarabun'; transition: 0.3s;
+        }
+        .btn-logout:hover { background: #ff6b6b; color: white; }
+
+        .hero {
+            background: linear-gradient(135deg, #001a33 0%, #003366 100%);
+            color: white; padding: 60px 20px; text-align: center;
+        }
+        .hero h1 { font-size: 2.5rem; margin: 0; font-weight: 600; }
+        .hero p { opacity: 0.85; font-weight: 300; margin-top: 15px; font-size: 1.1rem; }
+
+        .main-content { max-width: 1000px; margin: 40px auto 60px; padding: 0 20px; min-height: 400px;}
+        .section-title { text-align: left; margin-bottom: 25px; padding-left: 15px; border-left: 5px solid var(--secondary-gold); }
+        .section-title h2 { margin: 0; color: var(--primary-blue); }
+
+        .subject-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
+        .subject-card {
+            background: var(--white); padding: 35px 25px; border-radius: 20px; text-align: center;
+            cursor: pointer; transition: 0.4s; position: relative; overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.03);
+        }
+        .subject-card:hover { transform: translateY(-10px); border-color: var(--secondary-gold); box-shadow: 0 15px 45px rgba(0,0,0,0.08); }
+        .subject-card h3 { margin: 0; color: var(--primary-blue); font-size: 1.3rem; font-weight: 600; }
+        .subject-card p { font-size: 0.85rem; color: #666; margin-top: 10px; line-height: 1.5; }
+        .subject-card .icon { font-size: 3rem; margin-bottom: 20px; display: block; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
+        .modal-content { background: white; width: 90%; max-width: 420px; margin: 12vh auto; padding: 45px; border-radius: 25px; text-align: center; }
+        select { width: 100%; padding: 14px; margin: 25px 0; border-radius: 12px; border: 2px solid #eee; font-family: 'Sarabun'; font-size: 1rem; }
+        .btn-confirm { background: var(--primary-blue); color: white; padding: 16px; border: none; border-radius: 12px; width: 100%; font-size: 1.1rem; font-weight: 600; cursor: pointer; }
+
+        footer {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 60px 5% 20px;
+            margin-top: 80px;
+            border-top: 4px solid var(--secondary-gold);
+        }
+
+        .footer-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-section h3 {
+            color: var(--secondary-gold);
+            margin-bottom: 25px;
+            font-size: 1.25rem;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .footer-section h3::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 45px;
+            height: 3px;
+            background: var(--secondary-gold);
+        }
+
+        .footer-section p, .footer-section li {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            opacity: 0.85;
+        }
+
+        .footer-links-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-links-list li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links-list li a {
+            color: white;
+            text-decoration: none;
+            transition: 0.3s ease;
+        }
+
+        .footer-links-list li a:hover {
+            color: var(--secondary-gold);
+            padding-left: 8px;
+        }
+
+        .contact-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .contact-info i {
+            color: var(--secondary-gold);
+            width: 20px;
+            text-align: center;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .social-icons a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 50%;
+            text-decoration: none;
+            transition: 0.4s;
+            font-size: 1.2rem;
+        }
+
+        .social-icons a:hover {
+            background: var(--secondary-gold);
+            color: var(--primary-blue);
+            transform: translateY(-5px);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand" id="site-logo" onclick="handleLogoClick()">
+            🏛️ POLICE EXAM
+        </div>
+        <div class="nav-right" id="auth-section">
+            <span class="site-tag">📝 เว็บไซต์จำลองการสอบ</span>
+            <a href="login.html" class="btn-login-nav">เข้าสู่ระบบ</a>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <h1>ทดสอบความรู้ สู่สนามสอบจริง</h1>
+        <p>ก้าวแรกสู่เส้นทางผู้พิทักษ์สันติราษฎร์ ฝึกฝนวันนี้เพื่อวันหน้า</p>
+    </header>
+
+    <main class="main-content">
+        <div class="section-title" style="margin-top: 40px;">
+            <h2>โหมดจำลองสนามสอบจริง</h2>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+            <div class="subject-card" style="background: linear-gradient(135deg, #002244 0%, #004488 100%); color: white; border: 2px solid var(--secondary-gold);" 
+                onclick="startFullExam()">
+                <span class="icon">🏆</span>
+                <h3 style="color: var(--secondary-gold);">ข้อสอบรวมทุกวิชา (150 ข้อ)</h3>
+                <p style="color: rgba(255,255,255,0.8);">จำลองการสอบจริง: รวมทุกหมวดวิชา | เวลา 180 นาที</p>
+            </div>
+        </div>
+        <div class="section-title">
+            <h2>เลือกรายวิชาเพื่อเริ่มทดสอบ</h2>
+        </div>
+
+        <div class="subject-grid">
+            <div class="subject-card" onclick="startQuiz('Thai', 'วิชาภาษาไทย')">
+                <span class="icon">📖</span>
+                <h3>วิชาภาษาไทย</h3>
+                <p>หลักภาษาไทย การใช้ภาษา และการอ่านจับใจความ</p>
+            </div>
+
+            <div class="subject-card" onclick="startQuiz('Math', 'คณิตศาสตร์')">
+                <span class="icon">🔢</span>
+                <h3>คณิตศาสตร์</h3>
+                <p>ตรรกศาสตร์ อนุกรม และคณิตศาสตร์พื้นฐาน</p>
+            </div>
+
+            <div class="subject-card" onclick="startQuiz('Law', 'วิชาสังคม/กฎหมาย')">
+                <span class="icon">⚖️</span>
+                <h3>วิชาสังคม/กฎหมาย</h3>
+                <p>จริยธรรมตำรวจ และกฎหมายที่ประชาชนควรทราบ</p>
+            </div>
+
+            <div class="subject-card" onclick="startQuiz('Eng', 'ภาษาอังกฤษ')">
+                <span class="icon">🇬🇧</span>
+                <h3>ภาษาอังกฤษ</h3>
+                <p>Reading, Grammar และบทสนทนาพื้นฐาน</p>
+            </div>
+
+            <div class="subject-card" onclick="startQuiz('IT', 'เทคโนโลยีสารสนเทศ')">
+                <span class="icon">💻</span>
+                <h3>เทคโนโลยีสารสนเทศ</h3>
+                <p>ความรู้คอมพิวเตอร์เบื้องต้นและทักษะดิจิทัล</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="setupModal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
+            <h3 id="modalTitle" style="color: var(--primary-blue); margin: 0;">ตั้งค่าการสอบ</h3>
+            <select id="quizConfig">
+                <option value="20|1500">20 ข้อ (25 นาที) - ฝึกหัดเบาๆ</option>
+                <option value="50|3600">50 ข้อ (60 นาที) - มาตรฐาน</option>
+                <option value="150|10800">150 ข้อ (180 นาที) - จำลองสนามจริง</option>
+            </select>
+            <button class="btn-confirm" onclick="confirmStart()">เริ่มทำข้อสอบ</button>
+            <button onclick="closeModal()" style="background:none; border:none; color:#bbb; margin-top:20px; cursor:pointer; text-decoration:underline;">ยกเลิก</button>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>🏛️ POLICE EXAM</h3>
+                <p>ผู้นำด้านระบบจำลองการสอบออนไลน์ เพื่อเตรียมความพร้อมสู่สนามสอบจริงนายสิบตำรวจ พัฒนาขึ้นโดยใช้คลังข้อสอบที่ทันสมัยและระบบวิเคราะห์ผลที่แม่นยำที่สุด</p>
+            </div>
+
+            <div class="footer-section">
+                <h3>🔗 ลิงก์ที่เกี่ยวข้อง</h3>
+                <ul class="footer-links-list">
+                    <li><a href="index.html"><i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> หน้าแรก</a></li>
+                    <li><a href="guide.html"><i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> คู่มือการใช้งาน</a></li>
+                    <li><a href="index.html" target="_blank"><i class="fas fa-chevron-right" style="font-size: 0.7rem; margin-right: 8px;"></i> เว็บไซต์กองการสอบ</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h3>📞 ช่องทางการติดต่อ</h3>
+                <div class="contact-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>FB: Phattaradanai Srikham</span>
+                </div>
+                <div class="contact-info">
+                    <i class="fas fa-envelope"></i>
+                    <span>doongane@gmail.com</span>
+                </div>
+                <div class="contact-info">
+                    <i class="fas fa-phone-alt"></i>
+                    <span>099-273-9559</span>
+                </div>
+                
+                <div class="social-icons">
+                    <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" title="Line"><i class="fab fa-line"></i></a>
+                    <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            &copy; 2026 POLICE EXAM Simulator Project. All Rights Reserved. <br>
+            <span style="display: inline-block; margin-top: 8px;">Developed by <strong>ภัทรดนัย ศรีคำ</strong> (รหัสนักศึกษา: 67319010012)</span>
+        </div>
+    </footer>
+
+    <script>
+        let selectedSubject = '';
+
+        window.onload = function() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            const authSection = document.getElementById('auth-section');
+
+            if (user) {
+                authSection.innerHTML = `
+                    <div class="user-badge">
+                        <span style="display:flex; align-items:center; gap:5px;">
+                            <span style="color: var(--secondary-gold)">👤</span>
+                            <span style="color: white; font-weight: 600;">${user.name || user.username}</span>
+                        </span>
+                        <a href="history.html" class="btn-history">
+                            📜 ประวัติการสอบ
+                        </a>
+                    </div>
+                    <button onclick="logout()" class="btn-logout">ออก</button>
+                `;
+
+                if (user.role === 'admin') {
+                    const logo = document.getElementById('site-logo');
+                    logo.title = "🔧 คลิกเพื่อเข้าสู่หน้าจัดการระบบ (Admin)";
+                }
+            }
+        };
+
+        function handleLogoClick() {
+            const userData = localStorage.getItem('user');
+            const user = userData ? JSON.parse(userData) : null;
+
+            if (user && user.role === 'admin') {
+                if(confirm("🔧 ADMIN MODE: ต้องการเข้าสู่ระบบจัดการหลังบ้านหรือไม่?")) {
+                    window.location.href = 'manage_questions.php';
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        function startQuiz(subjectKey, displayTitle) {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                alert("🚨 กรุณาเข้าสู่ระบบก่อนครับ!");
+                window.location.href = 'login.html'; 
+                return;
+            }
+            selectedSubject = subjectKey;
+            document.getElementById('modalTitle').innerText = "สอบ: " + displayTitle;
+            document.getElementById('setupModal').style.display = 'block';
+        }
+
+        function confirmStart() {
+            const [limit, time] = document.getElementById('quizConfig').value.split('|');
+            window.location.href = `quiz.html?subject=${selectedSubject}&limit=${limit}&time=${time}`;
+        }
+
+        function closeModal() { document.getElementById('setupModal').style.display = 'none'; }
+        
+        function logout() { 
+            if(confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) { 
+                localStorage.removeItem('user'); 
+                location.reload(); 
+            } 
+        }
+
+        function startFullExam() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                alert("🚨 กรุณาเข้าสู่ระบบก่อนเริ่มทำข้อสอบจำลองครับ!");
+                window.location.href = 'login.html'; 
+                return;
+            }
+            if(confirm("คุณพร้อมสำหรับข้อสอบจำลอง 150 ข้อ (3 ชั่วโมง) หรือไม่?")) {
+                window.location.href = `quiz.html?subject=ทั้งหมด&limit=150&time=10800`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สรุปผลคะแนน - Police Exam Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #002244;
+            --secondary: #ffcc00;
+            --bg: #f4f7f9;
+            --white: #ffffff;
+            --correct: #28a745;
+            --wrong: #dc3545;
+            --warning: #ffc107;
+            --warning-text: #b68b00;
+        }
+
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg); margin: 0; padding: 40px 20px; color: #333; }
+        
+        .result-card { 
+            background: var(--white); 
+            max-width: 700px; 
+            margin: 0 auto; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .score-circle { 
+            width: 160px; height: 160px; 
+            border-radius: 50%; 
+            background: var(--primary); 
+            color: var(--secondary); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(0,34,68,0.2);
+            border: 5px solid var(--white);
+            outline: 2px solid var(--primary);
+        }
+        .score-num { font-size: 54px; font-weight: bold; line-height: 1; }
+        
+        .subject-stats-container {
+            margin-top: 30px;
+            text-align: left;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #e9ecef;
+        }
+        .subject-item { margin-bottom: 20px; }
+        .subject-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; }
+        
+        .subj-name { font-weight: 600; color: var(--primary); font-size: 1.05rem; }
+        
+        .cheer-text { font-size: 0.85rem; font-weight: 600; margin-right: 10px; }
+
+        .subject-bar-bg { background: #e0e0e0; height: 10px; border-radius: 5px; overflow: hidden; }
+        .subject-bar-fill { height: 100%; border-radius: 5px; transition: width 1s ease; }
+        
+        .bar-high { background: var(--correct); } 
+        .bar-mid { background: var(--warning); }
+        .bar-low { background: var(--wrong); }
+
+        .weakness-box { 
+            background: #fff5f5; border: 1px solid #ffcccc; padding: 25px; 
+            margin-top: 30px; text-align: left; border-radius: 15px;
+        }
+        .progress-container { background: #eee; height: 12px; border-radius: 6px; margin: 15px 0; overflow: hidden; }
+        .progress-fill { background: var(--wrong); height: 100%; width: 0%; transition: 1.5s ease-in-out; }
+
+        .btn-action { 
+            padding: 14px 25px; border: none; border-radius: 10px; cursor: pointer; 
+            font-weight: 600; font-size: 16px; transition: 0.3s; margin: 10px;
+        }
+        .btn-review { background: #6c757d; color: white; }
+        .btn-home { background: var(--primary); color: white; }
+        .btn-action:hover { transform: translateY(-2px); opacity: 0.9; }
+
+        .review-section { display: none; text-align: left; max-width: 800px; margin: 30px auto; }
+        .review-item { 
+            background: white; padding: 25px; border-radius: 15px; margin-bottom: 20px; 
+            border-left: 10px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+        }
+        .correct { border-left-color: var(--correct); }
+        .wrong { border-left-color: var(--wrong); }
+        .badge { padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: bold; margin-bottom: 10px; display: inline-block; }
+        .badge-correct { background: var(--correct); color: white; }
+        .badge-wrong { background: var(--wrong); color: white; }
+        .explanation-text { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; font-size: 14px; border-top: 2px solid #eee; }
+    </style>
+</head>
+<body>
+
+<div class="result-card">
+    <h1 id="res-subject" style="color: var(--primary); margin: 0;">สรุปผลการสอบ</h1>
+    
+    <div class="score-circle">
+        <div class="score-num" id="score-display">0</div>
+        <div style="font-size: 14px; opacity: 0.8;">คะแนน</div>
+    </div>
+    <p id="total-display" style="font-size: 18px; color: #666;">จากทั้งหมด 0 ข้อ</p>
+
+    <div class="subject-stats-container" id="subject-stats-box">
+        <h3 style="margin-top:0; color: var(--primary); border-bottom: 2px solid #ddd; padding-bottom: 10px;">
+            📊 คะแนนแยกรายวิชา
+        </h3>
+        <div id="subject-list"></div>
+    </div>
+
+    <div class="weakness-box" id="weakness-section">
+        <h3 style="margin-top:0; color: #d9534f;">🔍 ภาพรวมความผิดพลาด</h3>
+        <p style="font-size: 14px; color: #666; margin-bottom: 5px;">อัตราการตอบผิดทั้งหมด:</p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <span id="weakness-text" style="font-size: 24px; font-weight: bold; color: var(--wrong);">0%</span>
+        </div>
+        <div class="progress-container">
+            <div id="weakness-bar" class="progress-fill"></div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <button class="btn-action btn-review" onclick="toggleReview()">🔎 ตรวจทานคำตอบ (เฉลย)</button>
+        <button class="btn-action btn-home" onclick="window.location.href='index.html'">🏠 กลับหน้าหลัก</button>
+    </div>
+</div>
+
+<div id="review-container" class="review-section">
+    <h2 style="text-align: center; color: var(--primary);">เฉลยและคำอธิบายอย่างละเอียด</h2>
+    <div id="review-list"></div>
+</div>
+
+<script>
+    const score = parseInt(sessionStorage.getItem('last_score')) || 0;
+    const total = parseInt(sessionStorage.getItem('total_questions')) || 0;
+    const mainSubject = sessionStorage.getItem('current_subject') || 'ทั่วไป';
+    
+    const fullQuestions = JSON.parse(sessionStorage.getItem('full_questions') || "[]");
+    const userAnswers = JSON.parse(sessionStorage.getItem('user_answers') || "[]");
+
+    document.getElementById('score-display').innerText = score;
+    document.getElementById('total-display').innerText = `จากทั้งหมด ${total} ข้อ`;
+    document.getElementById('res-subject').innerText = `การสอบ: ${mainSubject}`;
+
+    const subjectStats = {}; 
+    const subjectNames = {
+        'Thai': 'ภาษาไทย',
+        'Math': 'คณิตศาสตร์/ความสามารถทั่วไป',
+        'English': 'ภาษาอังกฤษ',
+        'Law': 'กฎหมาย/สังคม',
+        'IT': 'เทคโนโลยีสารสนเทศ'
+    };
+
+    if (fullQuestions.length > 0) {
+        fullQuestions.forEach((q, index) => {
+            const subjKey = q.subject;
+            const uAns = userAnswers[index];
+            const cAns = parseInt(q.answer);
+            
+            if (!subjectStats[subjKey]) { subjectStats[subjKey] = { correct: 0, total: 0 }; }
+
+            subjectStats[subjKey].total++;
+            if (uAns === cAns) { subjectStats[subjKey].correct++; }
+        });
+
+        const subjectListDiv = document.getElementById('subject-list');
+        subjectListDiv.innerHTML = '';
+
+        for (const [key, stat] of Object.entries(subjectStats)) {
+            const percent = Math.round((stat.correct / stat.total) * 100);
+            const displayName = subjectNames[key] || key;
+            
+            let barClass = '';
+            let cheerMsg = '';
+            let textColor = '';
+
+            if (percent >= 70) {
+                barClass = 'bar-high';
+                cheerMsg = 'แบบนี้ผ่านแน่นอน! 🌟';
+                textColor = 'var(--correct)';
+            } else if (percent >= 40) {
+                barClass = 'bar-mid';
+                cheerMsg = 'เก่งแล้ว พยายามอีกนิด 💪';
+                textColor = 'var(--warning-text)';
+            } else {
+                barClass = 'bar-low';
+                cheerMsg = 'พยายามเข้า! สู้ๆ ✌️';
+                textColor = 'var(--wrong)';
+            }
+
+            const html = `
+                <div class="subject-item">
+                    <div class="subject-header">
+                        <span class="subj-name">${displayName}</span>
+                        <div style="text-align: right;">
+                            <span class="cheer-text" style="color: ${textColor};">${cheerMsg}</span>
+                            <span style="font-weight:600;">${stat.correct}/${stat.total} (${percent}%)</span>
+                        </div>
+                    </div>
+                    <div class="subject-bar-bg">
+                        <div class="subject-bar-fill ${barClass}" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            `;
+            subjectListDiv.innerHTML += html;
+        }
+    } else {
+        document.getElementById('subject-stats-box').style.display = 'none';
+    }
+
+    const errorCount = total - score;
+    const weaknessPercent = total > 0 ? Math.round((errorCount / total) * 100) : 0;
+    
+    document.getElementById('weakness-text').innerText = weaknessPercent + "%";
+    setTimeout(() => {
+        document.getElementById('weakness-bar').style.width = weaknessPercent + "%";
+    }, 500);
+
+    if (weaknessPercent < 20) {
+        document.getElementById('weakness-section').style.background = "#f0fff4";
+        document.getElementById('weakness-section').style.borderColor = "#c6f6d5";
+        document.getElementById('weakness-text').style.color = "var(--correct)";
+        document.getElementById('weakness-bar').style.backgroundColor = "var(--correct)";
+    }
+
+    function toggleReview() {
+        const container = document.getElementById('review-container');
+        if (container.style.display === 'block') {
+            container.style.display = 'none';
+            return;
+        }
+        
+        const listReview = document.getElementById('review-list');
+        listReview.innerHTML = '';
+
+        if (fullQuestions.length === 0) {
+            alert("⚠️ ไม่พบข้อมูลเฉลย");
+            return;
+        }
+
+        fullQuestions.forEach((q, index) => {
+            const uAns = userAnswers[index];
+            const cAns = parseInt(q.answer);
+            const isCorrect = uAns === cAns;
+
+            const div = document.createElement('div');
+            div.className = `review-item ${isCorrect ? 'correct' : 'wrong'}`;
+            
+            div.innerHTML = `
+                <span class="badge ${isCorrect ? 'badge-correct' : 'badge-wrong'}">
+                    ${isCorrect ? '✓ ถูกต้อง' : '✗ ตอบผิด'}
+                </span>
+                <div style="font-weight: 600; margin-bottom: 15px; font-size: 18px;">ข้อที่ ${index + 1}: ${q.question}</div>
+                <div style="font-size: 15px; line-height: 1.6;">
+                    <p><b>คำตอบของคุณ:</b> ${q['choice_' + uAns] || '<span style="color:#888">ไม่ได้ตอบ</span>'}</p>
+                    <p><b>คำตอบที่ถูกต้อง:</b> <span style="color:var(--correct); font-weight:600;">${q['choice_' + cAns]}</span></p>
+                </div>
+                <div class="explanation-text">
+                    <b>💡 คำอธิบาย:</b> ${q.explanation || 'ไม่มีคำอธิบายเพิ่มเติมสำหรับข้อนี้'}
+                </div>
+            `;
+            listReview.appendChild(div);
+        });
+
+        container.style.display = 'block';
+        container.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

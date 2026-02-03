@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ประวัติการสอบ - POLICE EXAM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #002244;
+            --secondary-gold: #ffcc00;
+            --bg-light: #f4f7f9;
+            --white: #ffffff;
+            --danger-red: #ff4d4d;
+            --success-green: #28a745;
+        }
+
+        body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; background-color: var(--bg-light); color: #333; }
+        .navbar { padding: 15px 5%; background: var(--primary-blue); color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .btn-back { color: white; text-decoration: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--white); padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        .stat-card h4 { margin: 0; color: #888; font-size: 0.9rem; font-weight: 400; }
+        .stat-card .value { font-size: 2rem; font-weight: 600; color: var(--primary-blue); margin-top: 10px; }
+        .history-card { background: var(--white); border-radius: 15px; overflow: hidden; box-shadow: 0 5px 25px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 15px; text-align: left; color: var(--primary-blue); font-weight: 600; border-bottom: 2px solid #eee; }
+        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+        .badge-subject { background: #eef2f7; color: var(--primary-blue); padding: 4px 10px; border-radius: 5px; font-weight: 600; font-size: 0.85rem; }
+        .text-score { font-weight: bold; color: var(--success-green); }
+        .text-date { color: #888; font-size: 0.85rem; }
+
+        /* สไตล์ปุ่มในตาราง */
+        .action-btns { display: flex; gap: 5px; }
+        .btn-action { 
+            padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; 
+            border: 1px solid #ddd; background: white; transition: 0.3s;
+        }
+        .btn-review { color: var(--primary-blue); border-color: var(--primary-blue); }
+        .btn-review:hover { background: var(--primary-blue); color: white; }
+        .btn-retake { color: var(--success-green); border-color: var(--success-green); }
+        .btn-retake:hover { background: var(--success-green); color: white; }
+        .btn-delete { color: var(--danger-red); border-color: var(--danger-red); }
+        .btn-delete:hover { background: var(--danger-red); color: white; }
+
+        .no-data { padding: 100px; text-align: center; color: #888; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="btn-back">⬅️ กลับหน้าหลัก</a>
+        <div style="font-weight: 600;">📜 ประวัติการเข้าสอบ</div>
+        <div style="width: 80px;"></div>
+    </nav>
+
+    <div class="container">
+        <div class="summary-grid">
+            <div class="stat-card">
+                <h4>จำนวนครั้งที่สอบ</h4>
+                <div class="value" id="total-exams">0</div>
+            </div>
+            <div class="stat-card">
+                <h4>คะแนนเฉลี่ย</h4>
+                <div class="value" id="avg-percent">0%</div>
+            </div>
+            <div class="stat-card">
+                <h4>วิชาที่สอบบ่อยที่สุด</h4>
+                <div class="value" id="top-subject">-</div>
+            </div>
+        </div>
+
+        <div class="history-card">
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th>วันที่สอบ</th>
+                        <th>รายวิชา</th>
+                        <th>คะแนน</th>
+                        <th>ผลประเมิน</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body"></tbody>
+            </table>
+            <div id="no-data-msg" class="no-data" style="display: none;">
+                ยังไม่มีประวัติการสอบในระบบ
+            </div>
+        </div>
+    </div>
+
+<script>
+    window.onload = function() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.id) {
+            alert("🚨 กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+            window.location.href = 'login.html';
+            return;
+        }
+        loadFullHistory(user.id);
+    };
+
+    async function loadFullHistory(userId) {
+        try {
+            const response = await fetch(`api/get_history_full.php?user_id=${userId}`);
+            const data = await response.json();
+            
+            const tableBody = document.getElementById('history-table-body');
+            const noDataMsg = document.getElementById('no-data-msg');
+            const table = document.getElementById('history-table');
+
+            if (data && data.length > 0) {
+                table.style.display = 'table';
+                noDataMsg.style.display = 'none';
+                
+                let tableHtml = '';
+                let totalScorePercent = 0;
+                const subjectCounts = {};
+
+                data.forEach(item => {
+                    const score = parseInt(item.score) || 0;
+                    const totalQ = parseInt(item.total_questions) || 0;
+                    const percent = totalQ > 0 ? (score / totalQ) * 100 : 0;
+                    
+                    totalScorePercent += percent;
+                    subjectCounts[item.subject] = (subjectCounts[item.subject] || 0) + 1;
+
+                    const dateObj = new Date(item.created_at.replace(/-/g, "/"));
+                    const dateStr = dateObj.toLocaleDateString('th-TH', {
+                        day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit'
+                    });
+
+                    tableHtml += `
+                        <tr>
+                            <td class="text-date">${dateStr} น.</td>
+                            <td><span class="badge-subject">${item.subject}</span></td>
+                            <td class="text-score">${score} / ${totalQ}</td>
+                            <td>${getEvaluation(percent)}</td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-action btn-review" title="ดูเฉลย" onclick="viewReview(${item.id})">👁️</button>
+                                    <button class="btn-action btn-retake" title="สอบอีกครั้ง" onclick="retakeExam('${item.subject}', '${item.question_ids}')">🔄</button>
+                                    <button class="btn-action btn-delete" title="ลบ" onclick="deleteHistory(${item.id})">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tableBody.innerHTML = tableHtml;
+                document.getElementById('total-exams').innerText = data.length;
+                document.getElementById('avg-percent').innerText = Math.round(totalScorePercent / data.length) + '%';
+                const topSub = Object.keys(subjectCounts).reduce((a, b) => subjectCounts[a] > subjectCounts[b] ? a : b);
+                document.getElementById('top-subject').innerText = topSub;
+            } else {
+                table.style.display = 'none';
+                noDataMsg.style.display = 'block';
+                resetStats();
+            }
+        } catch (error) { console.error("Error:", error); }
+    }
+
+    // --- ฟังก์ชันสำหรับปุ่มจัดการ ---
+    
+    function viewReview(historyId) {
+        // ส่ง ID ไปหน้า review.html
+        window.location.href = `review.html?id=${historyId}`;
+    }
+
+    function retakeExam(subject, qIds) {
+        if (!qIds || qIds === 'null') {
+            alert("ไม่พบข้อมูลชุดข้อสอบเดิม ระบบจะสุ่มชุดใหม่ให้");
+            window.location.href = `quiz.html?subject=${subject}`;
+            return;
+        }
+        // ส่งชุด ID ข้อสอบเดิมกลับไปสอบซ้ำ
+        window.location.href = `quiz.html?subject=${subject}&q_ids=${qIds}`;
+    }
+
+    async function deleteHistory(historyId) {
+        if (!confirm('⚠️ ยืนยันการลบประวัตินี้?')) return;
+        const user = JSON.parse(localStorage.getItem('user'));
+        const response = await fetch(`api/delete_history.php?id=${historyId}&user_id=${user.id}`);
+        const result = await response.json();
+        if (result.success) {
+            alert('ลบสำเร็จ');
+            loadFullHistory(user.id);
+        }
+    }
+
+    function getEvaluation(percent) {
+        if (percent >= 80) return '🟢 ดีเยี่ยม';
+        if (percent >= 50) return '🟡 ผ่านเกณฑ์';
+        return '🔴 ควรปรับปรุง';
+    }
+
+    function resetStats() {
+        document.getElementById('total-exams').innerText = '0';
+        document.getElementById('avg-percent').innerText = '0%';
+        document.getElementById('top-subject').innerText = '-';
+    }
+</script>
+</body>
+</html>

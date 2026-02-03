@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สนามสอบจำลอง - Police Exam</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #002244;
+            --secondary-gold: #ffcc00;
+            --bg-light: #f4f7f9;
+        }
+        body { font-family: 'Sarabun', sans-serif; background-color: var(--bg-light); margin: 0; padding: 20px; }
+        .quiz-header { background: var(--primary-blue); color: white; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: sticky; top: 0; z-index: 1000; }
+        .quiz-container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .question-text { font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #333; line-height: 1.5; }
+        .option { display: block; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .option:hover { background-color: #f0f4f8; border-color: var(--primary-blue); }
+        .option.selected { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 30px; }
+        button { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: 0.3s; }
+        .btn-next { background: var(--primary-blue); color: white; }
+        .btn-prev { background: #eee; color: #666; }
+        .btn-exit { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.4); }
+        #timer { font-size: 1.2rem; font-weight: bold; color: var(--secondary-gold); }
+        .modal-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); }
+        .result-modal { background: white; width: 90%; max-width: 400px; margin: 12vh auto; padding: 35px; border-radius: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.3); animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .percentage-circle { width: 130px; height: 130px; border-radius: 50%; background: #f8fbff; margin: 20px auto; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 8px solid var(--primary-blue); }
+        .btn-save-record { background: #28a745; color: white; width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin-top: 25px; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-header">
+    <button class="btn-exit" onclick="goHome()">🏠 ออก</button>
+    <div id="subject-name">วิชา: กำลังโหลด...</div>
+    <div id="timer">00:00</div>
+</div>
+
+<div class="quiz-container">
+    <div id="quiz-box">
+        <div class="question-text" id="question">กำลังโหลดคำถาม...</div>
+        <div id="options"></div>
+    </div>
+    <div class="nav-buttons">
+        <button class="btn-prev" onclick="prevQuestion()">⬅️ ข้อก่อนหน้า</button>
+        <button class="btn-next" id="next-btn-text" onclick="nextQuestion()">ข้อถัดไป ➡️</button>
+    </div>
+</div>
+
+<div id="saveModal" class="modal-overlay">
+    <div class="result-modal">
+        <div style="font-size: 3.5rem;">📊</div>
+        <h2 style="color: var(--primary-blue); margin: 10px 0;">ทำข้อสอบเสร็จสิ้น!</h2>
+        <div class="percentage-circle">
+            <span id="modal-percent" style="font-size: 2rem; font-weight: 800; color: #003366;">0%</span>
+            <small style="color: #666;">คะแนนที่ได้</small>
+        </div>
+        <div style="background: #fff4f4; padding: 15px; border-radius: 12px; border-left: 5px solid #ff4d4d; text-align: left;">
+            <strong style="color: #d9534f;">จุดที่ต้องพัฒนา:</strong>
+            <div id="weakness-percent" style="font-size: 1.2rem; font-weight: bold; color: #ff4d4d;">0%</div>
+        </div>
+        <button id="save-btn" class="btn-save-record" onclick="saveDataAndGoToResult()">💾 บันทึกประวัติและดูเฉลย</button>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const subject = urlParams.get('subject') || 'Thai';
+    const limit = parseInt(urlParams.get('limit')) || 20;
+    const timeFromURL = parseInt(urlParams.get('time')) || 1500;
+
+    document.getElementById('subject-name').innerText = `วิชา: ${subject} (${limit} ข้อ)`;
+
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    let timeLeft = timeFromURL;
+    let finalData = null;
+
+    async function fetchQuestions() {
+        try {
+            const response = await fetch(`api/get_questions.php?subject=${subject}&limit=${limit}`);
+            questions = await response.json();
+            if (questions.length > 0) {
+                showQuestion(0);
+                startTimer();
+            } else {
+                document.getElementById('question').innerText = "❌ ไม่พบข้อสอบ";
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function showQuestion(index) {
+        const q = questions[index];
+        document.getElementById('question').innerText = `${index + 1}. ${q.question}`;
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = "";
+        for (let i = 1; i <= 4; i++) {
+            const optionBtn = document.createElement('div');
+            optionBtn.className = `option ${userAnswers[index] === i ? 'selected' : ''}`;
+            optionBtn.innerText = q[`choice_${i}`];
+            optionBtn.onclick = () => { userAnswers[index] = i; showQuestion(index); };
+            optionsDiv.appendChild(optionBtn);
+        }
+        document.getElementById('next-btn-text').innerText = (index === questions.length - 1) ? "ส่งข้อสอบ 🏁" : "ข้อถัดไป ➡️";
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            showQuestion(currentQuestionIndex);
+        } else {
+            submitExam(); 
+        }
+    }
+
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            showQuestion(currentQuestionIndex);
+        }
+    }
+
+    function startTimer() {
+        const timerElement = document.getElementById('timer');
+        const countdown = setInterval(() => {
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            timerElement.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            if (timeLeft-- <= 0) { clearInterval(countdown); submitExam(); }
+        }, 1000);
+    }
+
+    async function submitExam() {
+        let score = 0;
+        let total = questions.length;
+        questions.forEach((q, index) => {
+            if (userAnswers[index] === parseInt(q.answer)) score++;
+        });
+
+        const scorePercent = Math.round((score / total) * 100);
+        const weaknessPercent = 100 - scorePercent;
+        const uAnswers = userAnswers.join(',');
+
+        document.getElementById('modal-percent').innerText = scorePercent + "%";
+        document.getElementById('weakness-percent').innerText = "คุณทำพลาดไป " + weaknessPercent + "%";
+        document.getElementById('saveModal').style.display = 'block';
+
+        const userData = localStorage.getItem('user');
+        const user = userData ? JSON.parse(userData) : null;
+
+        const qIds = questions.map(q => q.id).join(',');
+
+        finalData = {
+            user_id: user ? (user.id || user.user_id) : null,
+            subject: subject,
+            question_ids: qIds,
+            user_answers: uAnswers,
+            score: score,
+            total: total,
+            weakness_json: JSON.stringify({ "error_percent": weaknessPercent })
+        };
+
+        console.log("📊 ข้อมูลพร้อมบันทึก:", finalData);
+
+        sessionStorage.setItem('full_questions', JSON.stringify(questions)); 
+        sessionStorage.setItem('user_answers', JSON.stringify(userAnswers)); 
+        sessionStorage.setItem('last_score', score);
+        sessionStorage.setItem('total_questions', total);
+        sessionStorage.setItem('current_subject', subject);
+    }
+
+    async function saveDataAndGoToResult() {
+        const saveBtn = document.getElementById('save-btn');
+        saveBtn.innerText = "⌛ กำลังบันทึก...";
+        saveBtn.disabled = true;
+
+        if (!finalData || !finalData.user_id) {
+            alert("🚨 ไม่พบรหัสผู้ใช้! ประวัติจะไม่ถูกบันทึก (กรุณาล็อกอินใหม่)");
+            window.location.href = 'result.html';
+            return;
+        }
+
+        const fd = new FormData();
+        for (let key in finalData) fd.append(key, finalData[key]);
+        
+        try {
+            const response = await fetch('api/save_score.php', { method: 'POST', body: fd });
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log("✅ บันทึกสำเร็จ");
+                window.location.href = 'result.html';
+            } else {
+                alert("❌ บันทึกล้มเหลว: " + result.message);
+                saveBtn.disabled = false;
+                saveBtn.innerText = "💾 บันทึกประวัติและดูเฉลย";
+            }
+        } catch (e) { 
+            console.error("Fetch Error:", e);
+            alert("❌ ติดต่อเซิร์ฟเวอร์ไม่ได้");
+            window.location.href = 'result.html'; 
+        }
+    }
+
+    function goHome() { if(confirm("ออกตอนนี้ประวัติจะไม่ถูกบันทึก?")) window.location.href = 'index.html'; }
+
+    fetchQuestions();
+</script>
+</body>
+</html>
